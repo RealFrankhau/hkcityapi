@@ -1,0 +1,32 @@
+{
+  "name": "香港城市數據通",
+  "short_name": "HK City API",
+  "description": "香港全方位實時城市 API 數據：天氣、交通、巴士、地鐵、急證室、公眾假期, 航空",
+  "scope": "./",
+  "start_url": "./index.html",
+  "id": "./",
+  "display": "standalone",
+  "background_color": "#0d1b2e",
+  "theme_color": "#0d1b2e",
+  "orientation": "portrait-primary",
+  "lang": "zh-HK",
+  "icons": [
+    {
+      "src": "./assets/icons/logo192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "weather", "travel"],
+  "shortcuts": [
+    { "name": "天氣",   "url": "./index.html#weather",   "description": "查看天氣" },
+    { "name": "急症室",   "url": "./index.html#health",        "description": "急症室資訊" },
+    { "name": "假期", "url": "./index.html#holidays",    "description": "公眾假期" }
+  ]
+}

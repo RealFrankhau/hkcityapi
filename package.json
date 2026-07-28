@@ -1,0 +1,10 @@
+{
+  "name": "hkcityapi",
+  "version": "1.0.0",
+  "description": "HK City API — 香港城市數據通",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}
