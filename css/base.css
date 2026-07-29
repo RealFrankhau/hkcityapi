@@ -546,6 +546,28 @@ p, li { text-wrap: pretty; }
   flex-shrink: 0;
 }
 
+/* Rainfall color legend */
+.rain-legend {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.rain-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rain-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .wind-table {
   width: 100%;
   border-collapse: collapse;
@@ -753,6 +775,7 @@ p, li { text-wrap: pretty; }
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+          line-clamp: 2; /* standard property for compatibility */
   -webkit-box-orient: vertical;
   word-break: break-word;
 }

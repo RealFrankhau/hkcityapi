@@ -215,8 +215,16 @@
 <div>
           <div class="card-title">各區降雨量 Rainfall by District</div>
 <div class="card-sub">(自)：分區自動氣象站 | (天)：天文台分區站</div>
-</div>          
+</div>
           <span class="card-badge badge-source">香港天文台過去一小時</span>
+        </div>
+        <div class="rain-legend">
+          <span class="rain-legend-item">降雨量等級:</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:var(--text-faint)"></span>無雨</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:var(--info)"></span>正常</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:#22c55e"></span>黃色暴雨</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:#ef4444"></span>紅色暴雨</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:#000"></span>黑色暴雨</span>
         </div>
         <div id="h-rain" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:var(--sp-2)"></div>
       </div>
@@ -375,6 +383,14 @@
 <div class="card-sub">(自)：分區自動氣象站 | (天)：天文台分區站</div>
 </div>
       <span class="card-badge badge-source">香港天文台過去一小時</span></div>
+        <div class="rain-legend">
+          <span class="rain-legend-item">降雨量等級:</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:var(--text-faint)"></span>無雨</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:var(--info)"></span>正常</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:#22c55e"></span>黃色暴雨</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:#ef4444"></span>紅色暴雨</span>
+          <span class="rain-legend-item"><span class="rain-legend-dot" style="background:#000"></span>黑色暴雨</span>
+        </div>
         <div id="w-rain" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:var(--sp-2)"></div>
       </div>
 
@@ -1065,10 +1081,7 @@
     });
   }
 </script>
-<script>
-  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-</script>
-<script defer src="/<unique-path>/script.js"></script>
+
 
 <!-- ══ MOBILE BOTTOM NAV ══ -->
 <nav class="bottom-nav" role="navigation" aria-label="頁面導航">
@@ -1108,6 +1121,11 @@
     </button>
   </div>
 </nav>
+
+<script>
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 
 </body>
 </html>

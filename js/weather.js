@@ -285,9 +285,12 @@ function renderRainfall(rain, elId) {
         const baseName = r.automaticWeatherStation || r.place || '';
         const suffix = r._source === '天' ? '&nbsp;(天)' : '&nbsp;(自)';
         const stationName = baseName + suffix;
+        const rainColor = !hasRain
+          ? 'var(--text-faint)'
+          : (mm >= 70 ? '#000' : (mm >= 50 ? 'red' : (mm >= 30 ? 'green' : 'var(--info)')));
         return `<div class="row-item" style="flex-direction:column;align-items:flex-start;gap:2px">
           <span style="font-size:var(--text-xs);color:var(--text-muted)">${stationName}</span>
-          <span style="font-weight:600;color:${hasRain ? 'var(--info)' : 'var(--text-faint)'}">${mm} <span style="font-size:10px;font-weight:400">mm</span></span>
+          <span style="font-weight:600;color:${rainColor}">${mm} <span style="font-size:10px;font-weight:400">mm</span></span>
         </div>`;
       }).join('')}
     `;
