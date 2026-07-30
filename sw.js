@@ -57,6 +57,10 @@ const STATIC_URLS = [
   BASE_PATH + 'assets/icons/ts.gif',
   BASE_PATH + 'assets/icons/tsunami-warn.gif',
   BASE_PATH + 'assets/icons/vhot.gif',
+  BASE_PATH + 'assets/icons/cancel.gif',
+  BASE_PATH + 'assets/icons/amber.gif',
+  BASE_PATH + 'assets/icons/red.gif',
+  BASE_PATH + 'assets/icons/black.gif',  
   'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap',
 ];
 
