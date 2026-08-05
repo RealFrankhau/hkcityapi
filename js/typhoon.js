@@ -299,17 +299,85 @@ function formatTcTime(isoStr) {
 }
 
 /* ── Show/hide empty state ─────────────────────────────────── */
+/* Toggles the "no active tropical cyclones" placeholder, the map
+   and the info table. The TC chip selector is intentionally NOT
+   touched here — its visibility is owned by renderTcSelector(),
+   which sets it to "flex" when 2+ entries are present and "none"
+   otherwise. Hiding it from showEmptyState() would clobber the
+   chip row every time loadTcFromList() is called. */
 function showEmptyState(visible) {
   const emptyEl = document.getElementById('typhoon-empty');
   const mapEl = document.getElementById('typhoon-map');
   const infoEl = document.getElementById('typhoon-info-table');
   const statusEl = document.getElementById('typhoon-status');
-  const selectorEl = document.getElementById('tc-selector');
   if (emptyEl) emptyEl.style.display = visible ? 'block' : 'none';
   if (mapEl) mapEl.style.display = visible ? 'none' : 'block';
   if (infoEl) infoEl.style.display = visible ? 'none' : 'block';
-  if (selectorEl) selectorEl.style.display = 'none';
   if (statusEl) statusEl.textContent = visible ? '' : statusEl.textContent;
+}
+
+/* ── TC selector chip buttons ───────────────────────────────── */
+/* When the HKO TC list returns more than one active tropical cyclone,
+   render a row of pill-style buttons (one per TC) so the user can
+   switch which track is displayed. When only a single TC is active
+   the selector is hidden — the single entry is shown directly. */
+
+function renderTcSelector(entries) {
+  const selectorEl = document.getElementById('tc-selector');
+  if (!selectorEl) return;
+  // Clear any previous buttons
+  selectorEl.innerHTML = '';
+  // Only render chips when there are 2+ active TCs; one entry is
+  // shown directly with no need for a selector.
+  if (!entries || entries.length < 2) {
+    selectorEl.style.display = 'none';
+    return;
+  }
+  selectorEl.style.display = 'flex';
+  entries.forEach((e, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tc-chip';
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', 'false');
+    btn.dataset.tcIndex = String(i);
+    // Safe text content — use textContent (not innerHTML) so any
+    // odd characters in the HKO XML cannot inject markup.
+    const cnSpan = document.createElement('span');
+    cnSpan.className = 'tc-chip-name';
+    cnSpan.textContent = e.cn || '';
+    const enSpan = document.createElement('span');
+    enSpan.className = 'tc-chip-name-en';
+    enSpan.textContent = e.en || '';
+    const idSpan = document.createElement('span');
+    idSpan.className = 'tc-chip-id';
+    idSpan.textContent = e.id || '';
+    btn.appendChild(cnSpan);
+    if (e.en && e.en !== e.cn) {
+      btn.appendChild(document.createTextNode(' '));
+      btn.appendChild(enSpan);
+    }
+    btn.appendChild(document.createTextNode(' '));
+    btn.appendChild(idSpan);
+
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.tcIndex, 10);
+      if (Number.isNaN(idx)) return;
+      loadTcFromList(entries, idx, false);
+    });
+    selectorEl.appendChild(btn);
+  });
+}
+
+function setActiveTcChip(index) {
+  const selectorEl = document.getElementById('tc-selector');
+  if (!selectorEl) return;
+  selectorEl.querySelectorAll('.tc-chip').forEach(btn => {
+    const i = parseInt(btn.dataset.tcIndex, 10);
+    const isActive = i === index;
+    btn.classList.toggle('is-active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
 }
 
 /* ── Main fetch + render ───────────────────────────────────── */
@@ -320,10 +388,14 @@ async function fetchTyphoonData(forceRefresh = false) {
   const selectorEl = document.getElementById('tc-selector');
   if (!mapEl) return;
 
-  // Try loading from cache first (skip if forceRefresh)
+  // Try loading from cache first (skip if forceRefresh). The chip
+  // selector is rendered immediately from the cached list so the
+  // user can switch between TCs even before the fresh fetch returns.
   if (!forceRefresh) {
     const cachedList = cacheGet('tc_list');
     if (cachedList && cachedList.entries.length > 0) {
+      renderTcSelector(cachedList.entries);
+      setActiveTcChip(cachedList.selectedIndex || 0);
       // Show cached data immediately while fetching fresh
       loadTcFromList(cachedList.entries, cachedList.selectedIndex || 0, false);
     }
@@ -353,20 +425,22 @@ async function fetchTyphoonData(forceRefresh = false) {
     cacheSet('tc_list', { entries, selectedIndex: 0 });
 
     if (!entries.length) {
+      // No active TCs at all — hide the chip selector and clear any
+      // chips left over from a previous fetch, then show the empty
+      // state placeholder.
+      const selectorEl = document.getElementById('tc-selector');
+      if (selectorEl) {
+        selectorEl.innerHTML = '';
+        selectorEl.style.display = 'none';
+      }
       showEmptyState(true);
       if (statusEl) statusEl.textContent = '目前沒有活躍的熱帶氣旋 No active tropical cyclones';
       return;
     }
 
-    // Build dropdown
-    selectorEl.innerHTML = entries.map((e, i) =>
-      `<option value="${i}">${e.cn} ${e.en} (${e.id})</option>`
-    ).join('');
-    selectorEl.style.display = 'inline-block';
-    selectorEl.onchange = () => {
-      const idx = parseInt(selectorEl.value, 10);
-      loadTcFromList(entries, idx);
-    };
+    // Keep the list of TC entries accessible to the chip click
+    // handlers via the closure they were created in.
+    renderTcSelector(entries);
 
     // Load first TC (forceRefresh bypasses track cache)
     await loadTcFromList(entries, 0, forceRefresh);
@@ -391,8 +465,16 @@ async function loadTcFromList(entries, index, forceRefresh = false) {
   const tc = entries[index];
   if (!tc) return;
 
-  // Update dropdown selection
-  if (selectorEl) selectorEl.value = index;
+  // Update cached selection so a future page refresh / cache hit
+  // restores the same TC the user was last viewing.
+  const cachedList = cacheGet('tc_list');
+  if (cachedList) {
+    cachedList.selectedIndex = index;
+    cacheSet('tc_list', cachedList);
+  }
+
+  // Highlight the active chip (only visible when 2+ entries).
+  setActiveTcChip(index);
 
   showEmptyState(false);
 
