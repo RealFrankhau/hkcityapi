@@ -138,6 +138,8 @@ const AIRLINE_NAMES = {
   'ANG': '新畿內亞航空 Air Niugini',
   'FFM': 'Firefly',
   'ETH': '衣索比亞航空 Ethiopian Airlines',
+  'GIA': '嘉魯達印尼航空 Garuda Indonesia',
+  'KME': '柬埔寨航空 Cambodia Airways',
   // Generic fallbacks
   'ZZZ': '其他 Other',
 };
@@ -159,7 +161,7 @@ const CITY_NAMES = {
   'TPE': { zh: '台北', en: 'Taipei' }, 'TSA': { zh: '台北松山', en: 'Taipei Songshan' }, 'KHH': { zh: '高雄', en: 'Kaohsiung' }, 'TNN': { zh: '台南', en: 'Tainan' },
   'MFM': { zh: '澳門', en: 'Macau' }, 'TFU': { zh: '成都天府', en: 'Chengdu Tianfu' }, 'WUX': { zh: '無錫', en: 'Wuxi' }, 'DNH': { zh: '敦煌', en: 'Dunhuang' },
   'DYG': { zh: '張家界', en: 'Zhangjiajie' }, 'CZX': { zh: '常州', en: 'Changzhou' }, 'RMQ': { zh: '台中', en: 'Taichung' }, 'DAT': { zh: '大同', en: 'Datong' },
-  'KWL': { zh: '桂林', en: 'Guilin' },
+  'KWL': { zh: '桂林', en: 'Guilin' }, 'YIW': { zh: '義烏', en: 'Yiwu' }, 'YCU': { zh: '運城', en: 'Yuncheng' },
 
   // Japan
   'NRT': { zh: '東京成田', en: 'Tokyo Narita' }, 'HND': { zh: '東京羽田', en: 'Tokyo Haneda' }, 'KIX': { zh: '大阪關西', en: 'Osaka Kansai' }, 'ITM': { zh: '大阪伊丹', en: 'Osaka Itami' },
@@ -167,6 +169,7 @@ const CITY_NAMES = {
   'KOJ': { zh: '鹿兒島', en: 'Kagoshima' }, 'KIJ': { zh: '新潟', en: 'Niigata' }, 'SDJ': { zh: '仙台', en: 'Sendai' }, 'HKD': { zh: '函館', en: 'Hakodate' },
   'KMJ': { zh: '熊本', en: 'Kumamoto' }, 'OIT': { zh: '大分', en: 'Oita' }, 'HIJ': { zh: '廣島', en: 'Hiroshima' }, 'TAK': { zh: '高松', en: 'Takamatsu' },
   'MYJ': { zh: '松山', en: 'Matsuyama' }, 'TKS': { zh: '德島', en: 'Tokushima' }, 'ISG': { zh: '石垣', en: 'Ishigaki' }, 'MMY': { zh: '宮古', en: 'Miyako' },
+  'KMQ': { zh: '小松', en: 'Komatsu' }, 
   // Korea
   'ICN': { zh: '首爾仁川', en: 'Seoul Incheon' }, 'GMP': { zh: '首爾金浦', en: 'Seoul Gimpo' }, 'PUS': { zh: '釜山', en: 'Busan' }, 'CJU': { zh: '濟州', en: 'Jeju' },
   'TAE': { zh: '大邱', en: 'Daegu' }, 'KWJ': { zh: '光州', en: 'Gwangju' },
@@ -177,7 +180,8 @@ const CITY_NAMES = {
   'CGK': { zh: '雅加達', en: 'Jakarta' }, 'DPS': { zh: '峇里', en: 'Denpasar' }, 'SUB': { zh: '泗水', en: 'Surabaya' }, 'KNO': { zh: '棉蘭', en: 'Medan' },
   'MNL': { zh: '馬尼拉', en: 'Manila' }, 'CEB': { zh: '宿霧', en: 'Cebu' }, 'DVO': { zh: '達沃', en: 'Davao' }, 'KLO': { zh: '長灘島', en: 'Coron' },
   'HAN': { zh: '河內', en: 'Hanoi' }, 'SGN': { zh: '胡志明市', en: 'Ho Chi Minh City' }, 'DAD': { zh: '峴港', en: 'Da Nang' }, 'PQC': { zh: '富國島', en: 'Phuket' },
-  'CRK': { zh: '克拉克', en: 'Clark' }, 'KTI': { zh: 'Phnom Penh', en: '金邊/德崇' }, 'HYD': { zh: '海德拉巴', en: 'Hyderabad' },
+  'CRK': { zh: '克拉克', en: 'Clark' }, 'KTI': { zh: '金邊/德崇', en: 'Phnom Penh' }, 'HYD': { zh: '海德拉巴', en: 'Hyderabad' },
+  'SZB': { zh: '梳邦', en: 'Subang' },
   // South Asia & Middle East
   'BOM': { zh: '孟買', en: 'Mumbai' }, 'DEL': { zh: '新德里', en: 'New Delhi' }, 'BLR': { zh: '班加羅爾', en: 'Bengaluru' }, 'MAA': { zh: '清奈', en: 'Chennai' },
   'CMB': { zh: '可倫坡', en: 'Colombo' }, 'DAC': { zh: '達卡', en: 'Dhaka' }, 'KTM': { zh: '加德滿都', en: 'Kathmandu' },
@@ -209,7 +213,7 @@ const CITY_NAMES = {
   'BWN': { zh: '斯里巴加灣', en: 'B S Begawan' },  'MLE': { zh: '馬累', en: 'Male' },  'HRB': { zh: '哈爾濱', en: 'Harbin' },  'YIH': { zh: '宜昌', en: 'Yichang' },
   'DFW': { zh: '達拉斯', en: 'Dallas FT.Worth' },  'NAN': { zh: '納迪', en: 'Nadi' },  'URC': { zh: '烏魯木齊', en: 'Urumqi' },  'TAO': { zh: '青島', en: 'Qingdao' },
   'SPN': { zh: '塞班', en: 'Saipan' },  'POM': { zh: '莫爾茲比港', en: 'Port Moresby' },  'ENH': { zh: '莫爾茲比港', en: 'Port Moresby' },
-  'ROR': { zh: '科羅', en: 'Koror' }, 
+  'ROR': { zh: '科羅', en: 'Koror' },  'UBN': { zh: '烏蘭巴托', en: 'Ulaan Baatar' },
 };
 
 /* ── Cached data + render state ───────────────────────────── */

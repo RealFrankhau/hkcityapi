@@ -8,15 +8,8 @@
 const Holidays = (function() {
 
   const API_URL = 'https://www.1823.gov.hk/common/ical/tc.json';
-
-  // Static fallback data (2024-2027) from data.gov.hk / 1823.gov.hk
-  // Used when the live API is blocked by CORS in browser context
-  const STATIC_HOLIDAYS = [
-{"date":"20240101","name":"一月一日"},{"date":"20240210","name":"農曆年初一"},{"date":"20240212","name":"農曆年初三"},{"date":"20240213","name":"農曆年初四"},{"date":"20240329","name":"耶穌受難節"},{"date":"20240330","name":"耶穌受難節翌日"},{"date":"20240401","name":"復活節星期一"},{"date":"20240404","name":"清明節"},{"date":"20240501","name":"勞動節"},{"date":"20240515","name":"佛誕"},{"date":"20240610","name":"端午節"},{"date":"20240701","name":"香港特別行政區成立紀念日"},{"date":"20240918","name":"中秋節翌日"},{"date":"20241001","name":"國慶日"},{"date":"20241011","name":"重陽節"},{"date":"20241225","name":"聖誕節"},{"date":"20241226","name":"聖誕節後第一個周日"},
-{"date":"20250101","name":"一月一日"},{"date":"20250129","name":"農曆年初一"},{"date":"20250130","name":"農曆年初二"},{"date":"20250131","name":"農曆年初三"},{"date":"20250404","name":"清明節"},{"date":"20250418","name":"耶穌受難節"},{"date":"20250419","name":"耶穌受難節翌日"},{"date":"20250421","name":"復活節星期一"},{"date":"20250501","name":"勞動節"},{"date":"20250505","name":"佛誕"},{"date":"20250531","name":"端午節"},{"date":"20250701","name":"香港特別行政區成立紀念日"},{"date":"20251001","name":"國慶日"},{"date":"20251007","name":"中秋節翌日"},{"date":"20251029","name":"重陽節"},{"date":"20251225","name":"聖誕節"},{"date":"20251226","name":"聖誕節後第一個周日"},
-{"date":"20260101","name":"一月一日"},{"date":"20260217","name":"農曆年初一"},{"date":"20260218","name":"農曆年初二"},{"date":"20260219","name":"農曆年初三"},{"date":"20260403","name":"耶穌受難節"},{"date":"20260404","name":"耶穌受難節翌日"},{"date":"20260406","name":"清明節翌日"},{"date":"20260407","name":"復活節星期一翌日"},{"date":"20260501","name":"勞動節"},{"date":"20260525","name":"佛誕翌日"},{"date":"20260619","name":"端午節"},{"date":"20260701","name":"香港特別行政區成立紀念日"},{"date":"20260926","name":"中秋節翌日"},{"date":"20261001","name":"國慶日"},{"date":"20261019","name":"重陽節翌日"},{"date":"20261225","name":"聖誕節"},{"date":"20261226","name":"聖誕節後第一個周日"},
-{"date":"20270101","name":"一月一日"},{"date":"20270206","name":"農曆年初一"},{"date":"20270208","name":"農曆年初三"},{"date":"20270209","name":"農曆年初四"},{"date":"20270326","name":"耶穌受難節"},{"date":"20270327","name":"耶穌受難節翌日"},{"date":"20270329","name":"復活節星期一"},{"date":"20270405","name":"清明節"},{"date":"20270501","name":"勞動節"},{"date":"20270513","name":"佛誕"},{"date":"20270609","name":"端午節"},{"date":"20270701","name":"香港特別行政區成立紀念日"},{"date":"20270919","name":"中秋節翌日"},{"date":"20271001","name":"國慶日"},{"date":"20271008","name":"重陽節"},{"date":"20271225","name":"聖誕節"},{"date":"20271227","name":"聖誕節後第一個周日"}
-];
+  const CLOUDFLARE_WORKER_URL = 'https://hkcityapi.frankhau.workers.dev/';
+  const API_PROXY_URL = `${CLOUDFLARE_WORKER_URL}?url=${encodeURIComponent(API_URL)}`;
 
   const DAYS_ZH = ['日', '一', '二', '三', '四', '五', '六'];
   const DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -24,6 +17,8 @@ const Holidays = (function() {
 
   let _allHolidays = []; // [{date: Date, name: string, dateStr: string}]
   let _activeYear = new Date().getFullYear();
+  let _solarTerms = [];
+  let _solarTermActiveYear = new Date().getFullYear();
 
   /* ── Parse dtstart value ──────────────────────────────────── */
   function parseDtstart(dtstart) {
@@ -198,6 +193,8 @@ const Holidays = (function() {
     const yearHols = _allHolidays.filter(h => h.date.getFullYear() === year);
     if (!yearHols.length) {
       listEl.innerHTML = `<div style="color:var(--text-faint);padding:var(--sp-4)">${year} 年無假期數據</div>`;
+      const summEl = document.getElementById('hol-year-summary');
+      if (summEl) summEl.textContent = '無假期數據';
       return;
     }
 
@@ -249,140 +246,93 @@ const Holidays = (function() {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  /* ── Parse static holiday array [{date,name}] ─────────────── */
-  function parseStaticHolidays(arr) {
-    return arr.map(h => {
-      const raw = String(h.date);
-      const y = parseInt(raw.slice(0, 4));
-      const m = parseInt(raw.slice(4, 6)) - 1;
-      const d = parseInt(raw.slice(6, 8));
-      const date = new Date(y, m, d);
-      return { date, name: h.name };
-    }).filter(h => !isNaN(h.date.getTime())).sort((a, b) => a.date - b.date);
-  }
-
-
   /* ── Solar terms 二十四節氣 ────────────────────────────────── */
-  const SOLAR_TERMS_2025 = [
-    { name:'小寒', en:'Minor Cold',        date: new Date(2025, 0, 5)  },
-    { name:'大寒', en:'Major Cold',        date: new Date(2025, 0, 20) },
-    { name:'立春', en:'Start of Spring',   date: new Date(2025, 1, 3)  },
-    { name:'雨水', en:'Rain Water',        date: new Date(2025, 1, 18) },
-    { name:'驚蟄', en:'Awakening of Insects', date: new Date(2025, 2, 5) },
-    { name:'春分', en:'Spring Equinox',    date: new Date(2025, 2, 20) },
-    { name:'清明', en:'Clear and Bright',  date: new Date(2025, 3, 4)  },
-    { name:'穀雨', en:'Grain Rain',        date: new Date(2025, 3, 20) },
-    { name:'立夏', en:'Start of Summer',   date: new Date(2025, 4, 5)  },
-    { name:'小滿', en:'Grain Buds',        date: new Date(2025, 4, 21) },
-    { name:'芒種', en:'Grain in Ear',      date: new Date(2025, 5, 5)  },
-    { name:'夏至', en:'Summer Solstice',   date: new Date(2025, 5, 21) },
-    { name:'小暑', en:'Minor Heat',        date: new Date(2025, 6, 7)  },
-    { name:'大暑', en:'Major Heat',        date: new Date(2025, 6, 22) },
-    { name:'立秋', en:'Start of Autumn',   date: new Date(2025, 7, 7)  },
-    { name:'處暑', en:'End of Heat',       date: new Date(2025, 7, 22) },
-    { name:'白露', en:'White Dew',         date: new Date(2025, 8, 7)  },
-    { name:'秋分', en:'Autumnal Equinox',  date: new Date(2025, 8, 22) },
-    { name:'寒露', en:'Cold Dew',          date: new Date(2025, 9, 8)  },
-    { name:'霜降', en:'Frost Descent',  date: new Date(2025, 9, 23) },
-    { name:'立冬', en:'Start of Winter',   date: new Date(2025, 10, 7) },
-    { name:'小雪', en:'Minor Snow',        date: new Date(2025, 10, 22)},
-    { name:'大雪', en:'Major Snow',        date: new Date(2025, 11, 7) },
-    { name:'冬至', en:'Winter Solstice',   date: new Date(2025, 11, 21)},
+  const SOLAR_TERM_NAMES = [
+    ['小寒', 'Minor Cold'], ['大寒', 'Major Cold'],
+    ['立春', 'Start of Spring'], ['雨水', 'Rain Water'],
+    ['驚蟄', 'Awakening of Insects'], ['春分', 'Spring Equinox'],
+    ['清明', 'Clear and Bright'], ['穀雨', 'Grain Rain'],
+    ['立夏', 'Start of Summer'], ['小滿', 'Grain Buds'],
+    ['芒種', 'Grain in Ear'], ['夏至', 'Summer Solstice'],
+    ['小暑', 'Minor Heat'], ['大暑', 'Major Heat'],
+    ['立秋', 'Start of Autumn'], ['處暑', 'End of Heat'],
+    ['白露', 'White Dew'], ['秋分', 'Autumnal Equinox'],
+    ['寒露', 'Cold Dew'], ['霜降', 'Frost Descent'],
+    ['立冬', 'Start of Winter'], ['小雪', 'Minor Snow'],
+    ['大雪', 'Major Snow'], ['冬至', 'Winter Solstice'],
   ];
+  const SOLAR_TERMS_URL = year => `https://www.hko.gov.hk/tc/gts/astronomy/data/files/24SolarTerms_${year}.xml`;
+  const SOLAR_TERMS_SOURCE = 'https://www.hko.gov.hk/tc/gts/astronomy/Solar_Term.htm';
 
-  const SOLAR_TERMS_2026 = [
-    { name:'小寒', en:'Minor Cold',        date: new Date(2026, 0, 5)  },
-    { name:'大寒', en:'Major Cold',        date: new Date(2026, 0, 20) },
-    { name:'立春', en:'Start of Spring',   date: new Date(2026, 1, 4)  },
-    { name:'雨水', en:'Rain Water',        date: new Date(2026, 1, 19) },
-    { name:'驚蟄', en:'Awakening of Insects', date: new Date(2026, 2, 6) },
-    { name:'春分', en:'Spring Equinox',    date: new Date(2026, 2, 20) },
-    { name:'清明', en:'Clear and Bright',  date: new Date(2026, 3, 5)  },
-    { name:'穀雨', en:'Grain Rain',        date: new Date(2026, 3, 20) },
-    { name:'立夏', en:'Start of Summer',   date: new Date(2026, 4, 5)  },
-    { name:'小滿', en:'Grain Buds',        date: new Date(2026, 4, 21) },
-    { name:'芒種', en:'Grain in Ear',      date: new Date(2026, 5, 6)  },
-    { name:'夏至', en:'Summer Solstice',   date: new Date(2026, 5, 21) },
-    { name:'小暑', en:'Minor Heat',        date: new Date(2026, 6, 7)  },
-    { name:'大暑', en:'Major Heat',        date: new Date(2026, 6, 23) },
-    { name:'立秋', en:'Start of Autumn',   date: new Date(2026, 7, 7)  },
-    { name:'處暑', en:'End of Heat',       date: new Date(2026, 7, 23) },
-    { name:'白露', en:'White Dew',         date: new Date(2026, 8, 8)  },
-    { name:'秋分', en:'Autumnal Equinox',  date: new Date(2026, 8, 23) },
-    { name:'寒露', en:'Cold Dew',          date: new Date(2026, 9, 8)  },
-    { name:'霜降', en:'Frost Descent',  date: new Date(2026, 9, 23) },
-    { name:'立冬', en:'Start of Winter',   date: new Date(2026, 10, 7) },
-    { name:'小雪', en:'Minor Snow',        date: new Date(2026, 10, 22)},
-    { name:'大雪', en:'Major Snow',        date: new Date(2026, 11, 7) },
-    { name:'冬至', en:'Winter Solstice',   date: new Date(2026, 11, 22)},
-  ];
+  async function fetchSolarTermsYear(year) {
+    const url = SOLAR_TERMS_URL(year);
+    let response;
+    try {
+      response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch(e) {
+      response = await fetch(`${CLOUDFLARE_WORKER_URL}?url=${encodeURIComponent(url)}`);
+    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const SOLAR_TERMS_2027 = [
-    { name:'小寒', en:'Minor Cold',        date: new Date(2027, 0, 5)  },
-    { name:'大寒', en:'Major Cold',        date: new Date(2027, 0, 20) },
-    { name:'立春', en:'Start of Spring',   date: new Date(2027, 1, 4)  },
-    { name:'雨水', en:'Rain Water',        date: new Date(2027, 1, 19) },
-    { name:'驚蟄', en:'Awakening of Insects', date: new Date(2027, 2, 6) },
-    { name:'春分', en:'Spring Equinox',    date: new Date(2027, 2, 21) },
-    { name:'清明', en:'Clear and Bright',  date: new Date(2027, 3, 5)  },
-    { name:'穀雨', en:'Grain Rain',        date: new Date(2027, 3, 20) },
-    { name:'立夏', en:'Start of Summer',   date: new Date(2027, 4, 6)  },
-    { name:'小滿', en:'Grain Buds',        date: new Date(2027, 4, 21) },
-    { name:'芒種', en:'Grain in Ear',      date: new Date(2027, 5, 6)  },
-    { name:'夏至', en:'Summer Solstice',   date: new Date(2027, 5, 21) },
-    { name:'小暑', en:'Minor Heat',        date: new Date(2027, 6, 7)  },
-    { name:'大暑', en:'Major Heat',        date: new Date(2027, 6, 23) },
-    { name:'立秋', en:'Start of Autumn',   date: new Date(2027, 7, 8)  },
-    { name:'處暑', en:'End of Heat',       date: new Date(2027, 7, 23) },
-    { name:'白露', en:'White Dew',         date: new Date(2027, 8, 8)  },
-    { name:'秋分', en:'Autumnal Equinox',  date: new Date(2027, 8, 23) },
-    { name:'寒露', en:'Cold Dew',          date: new Date(2027, 9, 8)  },
-    { name:'霜降', en:'Frost Descent',  date: new Date(2027, 9, 23) },
-    { name:'立冬', en:'Start of Winter',   date: new Date(2027, 10, 7) },
-    { name:'小雪', en:'Minor Snow',        date: new Date(2027, 10, 22)},
-    { name:'大雪', en:'Major Snow',        date: new Date(2027, 11, 7) },
-    { name:'冬至', en:'Winter Solstice',   date: new Date(2027, 11, 22)},
-  ];
+    const xml = new DOMParser().parseFromString(await response.text(), 'application/xml');
+    if (xml.querySelector('parsererror')) throw new Error('Invalid solar term XML');
+    const rows = [...xml.querySelectorAll('Data')];
+    if (rows.length !== SOLAR_TERM_NAMES.length) throw new Error(`Expected 24 terms, received ${rows.length}`);
 
-    const SOLAR_TERMS_2028 = [
-    { name:'小寒', en:'Minor Cold',        date: new Date(2028, 0, 6)  },
-    { name:'大寒', en:'Major Cold',        date: new Date(2028, 0, 20) },
-    { name:'立春', en:'Start of Spring',   date: new Date(2028, 1, 4)  },
-    { name:'雨水', en:'Rain Water',        date: new Date(2028, 1, 19) },
-    { name:'驚蟄', en:'Awakening of Insects', date: new Date(2028, 2, 5) },
-    { name:'春分', en:'Spring Equinox',    date: new Date(2028, 2, 20) },
-    { name:'清明', en:'Clear and Bright',  date: new Date(2028, 3, 4)  },
-    { name:'穀雨', en:'Grain Rain',        date: new Date(2028, 3, 19) },
-    { name:'立夏', en:'Start of Summer',   date: new Date(2028, 4, 5)  },
-    { name:'小滿', en:'Grain Buds',        date: new Date(2028, 4, 20) },
-    { name:'芒種', en:'Grain in Ear',      date: new Date(2028, 5, 5)  },
-    { name:'夏至', en:'Summer Solstice',   date: new Date(2028, 5, 21) },
-    { name:'小暑', en:'Minor Heat',        date: new Date(2028, 6, 6)  },
-    { name:'大暑', en:'Major Heat',        date: new Date(2028, 6, 22) },
-    { name:'立秋', en:'Start of Autumn',   date: new Date(2028, 7, 7)  },
-    { name:'處暑', en:'End of Heat',       date: new Date(2028, 7, 22) },
-    { name:'白露', en:'White Dew',         date: new Date(2028, 8, 7)  },
-    { name:'秋分', en:'Autumnal Equinox',  date: new Date(2028, 8, 22) },
-    { name:'寒露', en:'Cold Dew',          date: new Date(2028, 9, 8)  },
-    { name:'霜降', en:'Frost Descent',  date: new Date(2028, 9, 23) },
-    { name:'立冬', en:'Start of Winter',   date: new Date(2028, 10, 7) },
-    { name:'小雪', en:'Minor Snow',        date: new Date(2028, 10, 22)},
-    { name:'大雪', en:'Major Snow',        date: new Date(2028, 11, 6) },
-    { name:'冬至', en:'Winter Solstice',   date: new Date(2028, 11, 21)},
-  ];
-
-  function getAllSolarTerms() {
-    return [...SOLAR_TERMS_2025, ...SOLAR_TERMS_2026, ...SOLAR_TERMS_2027, ...SOLAR_TERMS_2028].sort((a, b) => a.date - b.date);
+    return rows.map((row, index) => {
+      const month = Number(row.querySelector('M')?.textContent);
+      const day = Number(row.querySelector('D')?.textContent);
+      const time = row.querySelector('hm')?.textContent.trim() || '';
+      if (!month || !day || !/^\d{2}:\d{2}$/.test(time)) throw new Error(`Invalid term data for ${year}`);
+      return {
+        name: SOLAR_TERM_NAMES[index][0],
+        en: SOLAR_TERM_NAMES[index][1],
+        date: new Date(year, month - 1, day),
+        time,
+      };
+    });
   }
 
-  /* ── Render solar terms section ─────────────────────────── */
-  function renderSolarTerms() {
+  async function refreshSolarTerms() {
     const el = document.getElementById('hol-solar-terms');
     if (!el) return;
 
+    const thisYear = new Date().getFullYear();
+    const years = [thisYear - 1, thisYear, thisYear + 1, thisYear + 2];
+    const results = await Promise.allSettled(years.map(fetchSolarTermsYear));
+    _solarTerms = results
+      .filter(result => result.status === 'fulfilled')
+      .flatMap(result => result.value)
+      .sort((a, b) => a.date - b.date);
+
+    if (!_solarTerms.length) {
+      el.innerHTML = `<div style="color:var(--text-faint);font-size:var(--text-xs)">無法載入香港天文台節氣資料。<a href="${SOLAR_TERMS_SOURCE}" target="_blank" rel="noopener">查看天文台資料</a></div>`;
+      return;
+    }
+
+    _solarTermActiveYear = _solarTerms.some(term => term.date.getFullYear() === thisYear)
+      ? thisYear
+      : _solarTerms[0].date.getFullYear();
+    renderSolarTerms();
+  }
+
+  function showSolarTermYear(year) {
+    const selectedYear = Number(year);
+    if (!_solarTerms.some(term => term.date.getFullYear() === selectedYear)) return;
+    _solarTermActiveYear = selectedYear;
+    renderSolarTerms();
+  }
+
+  function renderSolarTerms() {
+    const el = document.getElementById('hol-solar-terms');
+    if (!el || !_solarTerms.length) return;
+
     const now   = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const all   = getAllSolarTerms();
+    const all   = _solarTerms;
+    const years = [...new Set(all.map(term => term.date.getFullYear()))].sort();
+    const yearTerms = all.filter(term => term.date.getFullYear() === _solarTermActiveYear);
 
     // Find current (most recent past or today)
     const past = all.filter(t => t.date <= today);
@@ -414,6 +364,7 @@ const Holidays = (function() {
             <div style="font-size:var(--text-xs);color:var(--text-faint);margin-top:var(--sp-1);
                         font-family:var(--font-mono)">
               ${current.date.getFullYear()}年${current.date.getMonth()+1}月${current.date.getDate()}日
+              ${current.time}
             </div>
           </div>
         ` : '<div></div>'}
@@ -431,19 +382,26 @@ const Holidays = (function() {
             <div style="font-size:var(--text-xs);color:var(--text-faint);margin-top:var(--sp-1);
                         font-family:var(--font-mono)">
               ${next.date.getFullYear()}年${next.date.getMonth()+1}月${next.date.getDate()}日
+              ${next.time}
               · 還有 <span style="color:var(--primary);font-weight:700">${nextDays}</span> 天
             </div>
           </div>
         ` : '<div></div>'}
       </div>
 
-      <!-- All upcoming solar terms list -->
-      <div style="font-size:var(--text-xs);font-weight:700;color:var(--text-faint);
-                  text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--sp-2)">
-        2026年的二十四節氣
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-2)">
+        <div style="font-size:var(--text-xs);font-weight:700;color:var(--text-faint);
+                    text-transform:uppercase;letter-spacing:.06em">
+          ${_solarTermActiveYear}年的二十四節氣
+        </div>
+        <select aria-label="選擇節氣年份" onchange="Holidays.showSolarTermYear(this.value)"
+                style="padding:var(--sp-1) var(--sp-2);border:1px solid var(--border);border-radius:var(--r-md);
+                       background:var(--surface-2);color:var(--text);font-size:var(--text-sm)">
+          ${years.map(year => `<option value="${year}" ${year === _solarTermActiveYear ? 'selected' : ''}>${year}</option>`).join('')}
+        </select>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:var(--sp-2)">
-        ${SOLAR_TERMS_2026.map(t => {
+          ${yearTerms.map(t => {
           const isToday = t.date.getTime() === today.getTime();
           const isPast  = t.date < today;
           const isNext  = next && t.date.getTime() === next.date.getTime();
@@ -456,10 +414,13 @@ const Holidays = (function() {
             <div style="padding:var(--sp-2) var(--sp-3);background:${bg};border-radius:var(--r-md);
                         opacity:${opacity};text-align:center;min-width:56px">
               <div style="font-size:12px;font-weight:700;color:${color}">${t.name}</div>
-              <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-mono)">${mm}/${dd}</div>
+              <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-mono)">${mm}/${dd} ${t.time}</div>
             </div>
           `;
         }).join('')}
+      </div>
+      <div style="font-size:var(--text-xs);color:var(--text-faint);margin-top:var(--sp-3)">
+        資料來源：<a href="${SOLAR_TERMS_SOURCE}" target="_blank" rel="noopener">香港天文台（香港時間）</a>
       </div>
     `;
   }
@@ -469,39 +430,45 @@ const Holidays = (function() {
     const listEl = document.getElementById('hol-year-list');
     if (!listEl) return;
     listEl.innerHTML = `<div class="skel skel-p" style="margin-bottom:8px"></div><div class="skel skel-p" style="margin-bottom:8px;width:70%"></div>`;
+    refreshSolarTerms();
 
-    let loaded = false;
-
-    // Try live API first (works when served from same origin / CORS-enabled host)
+    // Load public holidays directly, then use the local proxy if browser CORS blocks it.
     try {
-      const res = await fetch(API_URL);
+      let res;
+      try {
+        res = await fetch(API_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      } catch(e) {
+        console.warn('[Holidays] Direct API request failed, trying same-origin proxy:', e.message);
+        res = await fetch(API_PROXY_URL);
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const events = data?.vcalendar?.[0]?.vevent || [];
-      if (events.length > 0) {
-        _allHolidays = events
-          .map(ev => {
-            const date = parseDtstart(ev.dtstart);
-            const name = parseSummary(ev.summary);
-            if (!date) return null;
-            return { date, name };
-          })
-          .filter(Boolean)
-          .sort((a, b) => a.date - b.date);
-        loaded = true;
-      }
-    } catch(e) {
-      console.warn('[Holidays] Live API blocked (CORS), using static data:', e.message);
-    }
+      _allHolidays = events
+        .map(ev => {
+          const date = parseDtstart(ev.dtstart);
+          const name = parseSummary(ev.summary);
+          if (!date) return null;
+          return { date, name };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.date - b.date);
+      if (!_allHolidays.length) throw new Error('No valid holiday events');
 
-    // Fall back to static embedded data
-    if (!loaded) {
-      _allHolidays = parseStaticHolidays(STATIC_HOLIDAYS);
-      // Show a notice
       const notice = document.getElementById('hol-data-notice');
       if (notice) {
         notice.innerHTML = `<div style="font-size:var(--text-xs);color:var(--text-faint);padding:var(--sp-2) 0">
-          數據來源：香港1823 (2024–2027年公眾假期)
+          數據來源：香港1823 公眾假期 API
+        </div>`;
+      }
+    } catch(e) {
+      console.warn('[Holidays] Unable to load public holidays from 1823 API:', e.message);
+      _allHolidays = [];
+      const notice = document.getElementById('hol-data-notice');
+      if (notice) {
+        notice.innerHTML = `<div style="font-size:var(--text-xs);color:var(--text-faint);padding:var(--sp-2) 0">
+          無法載入香港1823公眾假期資料，請稍後再試。
         </div>`;
       }
     }
@@ -516,8 +483,7 @@ const Holidays = (function() {
     renderYearTabs(years);
     renderUpcoming(_allHolidays);
     renderYearList(_activeYear);
-    renderSolarTerms();
   }
 
-  return { refresh, showYear };
+  return { refresh, showYear, showSolarTermYear };
 })();

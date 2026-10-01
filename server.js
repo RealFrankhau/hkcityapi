@@ -19,6 +19,8 @@ const HKO_DATA_HOST = 'data.weather.gov.hk';
 const GMB_HOST = 'data.etagmb.gov.hk';
 const HKIA_HOST = 'www.hongkongairport.com';
 const HKIA_PATH = '/flightinfo-rest/rest/flights';
+const HOLIDAYS_HOST = 'www.1823.gov.hk';
+const HOLIDAYS_PATH = '/common/ical/tc.json';
 
 // ── MIME types ──────────────────────────────────────────────
 const MIME = {
@@ -159,6 +161,40 @@ function proxyGmb(res, gmbPath) {
   proxyReq.end();
 }
 
+// ── Proxy 1823 public holidays API ──────────────────────────
+function proxyHolidays(res) {
+  const options = {
+    hostname: HOLIDAYS_HOST,
+    path: HOLIDAYS_PATH,
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      'Accept': 'application/json',
+    },
+  };
+
+  const proxyReq = https.request(options, (proxyRes) => {
+    const chunks = [];
+    proxyRes.on('data', chunk => chunks.push(chunk));
+    proxyRes.on('end', () => {
+      res.writeHead(proxyRes.statusCode, {
+        'Content-Type': proxyRes.headers['content-type'] || 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=3600',
+      });
+      res.end(Buffer.concat(chunks));
+    });
+  });
+
+  proxyReq.on('error', (err) => {
+    console.error('1823 holidays proxy error:', err.message);
+    res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ error: '1823 holidays proxy error' }));
+  });
+
+  proxyReq.end();
+}
+
 // ── Proxy HKIA flight API ──────────────────────────────────
 function proxyHkia(res, queryString) {
   // Build the upstream path with provided query string
@@ -241,6 +277,13 @@ const server = http.createServer((req, res) => {
     const queryString = url.search || '';
     console.log(`[proxy] ${HKIA_HOST}${HKIA_PATH}${queryString}`);
     proxyHkia(res, queryString);
+    return;
+  }
+
+  // ── 1823 public holidays API proxy route ──
+  if (pathname === '/1823-holidays') {
+    console.log(`[proxy] ${HOLIDAYS_HOST}${HOLIDAYS_PATH}`);
+    proxyHolidays(res);
     return;
   }
 

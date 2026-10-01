@@ -13,7 +13,7 @@
 ============================================================ */
 const BASE_PATH = self.location.pathname.replace(/sw\.js$/, '');
 
-const CACHE_NAME  = 'hkcityapi-v14';
+const CACHE_NAME  = 'hkcityapi-v15';
 
 // 全部用相對 BASE_PATH 拼接，部署到任何路徑都能正確 cache
 const STATIC_URLS = [

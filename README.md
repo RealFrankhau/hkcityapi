@@ -135,6 +135,17 @@ npx serve .
 3. 輸入 `https://github.com/RealFrankhau/hkcityapi`
 4. 點「Run ▶」
 
+### Cloudflare Worker 假期 API 代理
+網站使用現有的 Cloudflare Worker `https://hkcityapi.frankhau.workers.dev/`。這個 Worker 接受 `?url=` 參數；`js/holidays.js` 會自動把 1823 API 網址編碼後加到 Worker 網址，因此不需要另行部署 Worker 或手動組合查詢字串。
+
+如需更換 Worker，只要修改 `js/holidays.js` 的 `CLOUDFLARE_WORKER_URL`。可直接在瀏覽器測試代理是否回傳 JSON：
+
+```text
+https://hkcityapi.frankhau.workers.dev/?url=https%3A%2F%2Fwww.1823.gov.hk%2Fcommon%2Fical%2Ftc.json
+```
+
+改動前端程式後，推送更新至 GitHub，等待 GitHub Pages 重新部署，再到網站的「假期」頁確認全年假期清單。本機 `server.js` 內的 1823 代理仍可作為本機 Worker 無法連線時的備援。
+
 ---
 
 ## 🏗 Project Structure · 項目結構
